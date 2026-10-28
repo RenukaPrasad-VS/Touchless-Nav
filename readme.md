@@ -113,6 +113,7 @@ Use keyboard or gesture teleoperation instead of Nav2 at a time.
 - Nav2 path planning and obstacle avoidance
 - TurtleBot3 Gazebo simulation
 
-## Author
+## Contributors
 
-Renuka Prasad V S
+- Pratheed H A
+- RenukaPrasad VS
