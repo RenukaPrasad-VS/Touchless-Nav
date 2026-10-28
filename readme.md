@@ -43,7 +43,8 @@ The OpenCV path should be under `/usr/lib/python3/dist-packages`, not `~/.local`
 ```bash
 mkdir -p ~/ros2_ws/src
 cd ~/ros2_ws/src
-git clone https://github.com/God-Official/GGANS-Touchless-Navigation.git
+# Clone your own GitHub repository (replace these placeholders with its URL)
+git clone https://github.com/YOUR_USERNAME/YOUR_REPOSITORY.git
 cd ~/ros2_ws
 source /opt/ros/humble/setup.bash
 colcon build --symlink-install
