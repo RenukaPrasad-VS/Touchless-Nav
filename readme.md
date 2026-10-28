@@ -70,9 +70,7 @@ ros2 launch turtlebot3_gazebo turtlebot3_world.launch.py
 Start Nav2 in a second terminal:
 
 ```bash
-ros2 launch turtlebot3_navigation2 navigation2.launch.py \
-  map:=$(ros2 pkg prefix turtlebot3_navigation2)/share/turtlebot3_navigation2/map/map.yaml \
-  use_sim_time:=True
+ros2 launch turtlebot3_navigation2 navigation2.launch.py
 ```
 
 In RViz, initialize localization before sending a goal. Select **2D Pose Estimate**, click the robot's current location on the map, drag in the direction it faces, and release. Wait for AMCL to settle.
