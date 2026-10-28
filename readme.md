@@ -72,7 +72,7 @@ Start Nav2 in a second terminal:
 ros2 launch turtlebot3_navigation2 navigation2.launch.py
 ```
 
-In RViz, initialize localization before sending a goal. Select **2D Pose Estimate**, click the robot's current location on the map, drag in the direction it faces, and release. Wait for AMCL to settle.
+In RViz, initialize localization before sending a goal. Select **Nav2 Goal**, click the robot's current location on the map, drag in the direction it faces, and release. Wait for AMCL to settle.
 
 ## Use touchless navigation
 
