@@ -3,10 +3,10 @@
 This ROS 2 package replaces cardinal-direction commands with object-target
 navigation. Send a text/voice transcript such as `go to the chair`. A local
 vision-language model finds that object in the current RGB image and returns a
-bounding box. The node samples aligned depth at the box center, projects the
-pixel into 3D using `CameraInfo`, transforms it into `map`, and sends a
-standoff goal to Nav2. Nav2 remains responsible for path planning and obstacle
-avoidance.
+bounding box. The node samples aligned depth near the lower part of the box,
+projects the pixel into 3D using `CameraInfo`, transforms it into `map`, and
+sends a standoff goal to Nav2. Nav2 remains responsible for path planning and
+obstacle avoidance.
 
 This is a practical VLA-style ROS integration for simulation. The model
 grounds language in an image, while calibrated depth and TF provide a metric
@@ -167,4 +167,5 @@ Check actual robot topic names with `ros2 topic list`, camera calibration with
 
 ## Author
 
-Renuka Prasad VS — [vsrenukaprasadvs5@gmail.com](mailto:vsrenukaprasadvs5@gmail.com)
+Renuka Prasad VS
+Robotics and ROS 2 Developer | Computer Vision | Manipulation | Autonomous Navigation
