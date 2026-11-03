@@ -1,0 +1,28 @@
+vla_object_nav:
+  ros__parameters:
+    # Set false when using a physical robot.
+    use_sim_time: true
+
+    # ROS interfaces
+    instruction_topic: /voice/recognized_text
+    image_topic: /camera/image
+    depth_topic: /camera/depth_image
+    camera_info_topic: /camera/camera_info
+    # The repository's Gazebo camera optical joint has zero rotation. Keep
+    # false for this simulation; set true for a real camera with correct TF.
+    camera_frame_uses_optical_convention: false
+    navigate_action: navigate_to_pose
+
+    # Vision-language model endpoint and model name
+    ollama_url: http://localhost:11434/api/chat
+    model: qwen3-vl:4b
+
+    # TF frames
+    map_frame: map
+    base_frame: base_footprint
+
+    # Approach and input validation
+    standoff_m: 0.15
+    min_depth_m: 0.15
+    max_depth_m: 5.0
+    max_image_age_sec: 1.5
