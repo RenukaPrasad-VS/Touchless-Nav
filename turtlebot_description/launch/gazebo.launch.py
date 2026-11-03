@@ -3,20 +3,26 @@ import xacro
 from ament_index_python.packages import get_package_share_directory
 
 from launch import LaunchDescription
-from launch.actions import IncludeLaunchDescription
+from launch.actions import AppendEnvironmentVariable, IncludeLaunchDescription
 from launch.launch_description_sources import PythonLaunchDescriptionSource
 from launch.substitutions import PathJoinSubstitution
 from launch_ros.actions import Node
 from launch_ros.substitutions import FindPackageShare
-from launch.actions import SetEnvironmentVariable
 
 
 def generate_launch_description():
     
     pkg_ur_description = 'turtlebot_description'
+    pkg_share = get_package_share_directory(pkg_ur_description)
     urdf_path = 'urdf/turtlebot.urdf.xacro'
-    xacro_file = os.path.join(get_package_share_directory(pkg_ur_description), urdf_path)
+    xacro_file = os.path.join(pkg_share, urdf_path)
     robo_des_raw = xacro.process_file(xacro_file).toxml()
+
+    set_gz_resource_path = AppendEnvironmentVariable(
+        name='GZ_SIM_RESOURCE_PATH',
+        value=pkg_share,
+        prepend=True,
+    )
 
     world_path = PathJoinSubstitution([
         FindPackageShare("turtlebot_description"),  # Replace with your package name
@@ -113,6 +119,7 @@ def generate_launch_description():
                         arguments=['0.0', '0.0', '0.0', '0.0', '0.0', '0.0', 'map', 'odom'])
 
     return LaunchDescription([
+        set_gz_resource_path,
         robot_state_publisher_node,
         rviz_node,
         gz_spawn_entity,

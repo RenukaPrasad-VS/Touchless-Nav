@@ -1,12 +1,13 @@
 import cv2
-import numpy as np
 from collections import deque
 import mediapipe as mp
 import time
 
 class HandClickDetector:
-    """Detects 'tap' gesture (forward motion of index finger)."""
-    def __init__(self, max_num_hands=1, detection_conf=0.7, tracking_conf=0.7):
+    """Detect a deliberate forward index-finger poke using relative landmark depth."""
+    def __init__(self, max_num_hands=1, detection_conf=0.7, tracking_conf=0.7,
+                 poke_threshold=0.04, release_threshold=0.015,
+                 min_poke_frames=2, cooldown=0.5):
         self.mp_hands = mp.solutions.hands
         self.mp_drawing = mp.solutions.drawing_utils
         self.hands = self.mp_hands.Hands(
@@ -14,10 +15,21 @@ class HandClickDetector:
             min_detection_confidence=detection_conf,
             min_tracking_confidence=tracking_conf
         )
-        self.z_history = deque(maxlen=5)
+        self.depth_history = deque(maxlen=5)
+        self.baseline = None
         self.click_state = False
-        self.last_click_time = 0
-        self.cooldown = 0.4  # seconds between taps
+        self.poke_frames = 0
+        self.last_click_time = 0.0
+        self.poke_threshold = float(poke_threshold)
+        self.release_threshold = float(release_threshold)
+        self.min_poke_frames = max(1, int(min_poke_frames))
+        self.cooldown = float(cooldown)
+
+    def _reset_tracking(self):
+        self.depth_history.clear()
+        self.baseline = None
+        self.click_state = False
+        self.poke_frames = 0
 
     def process_frame(self, frame):
         h, w, _ = frame.shape
@@ -26,26 +38,46 @@ class HandClickDetector:
         click_coords = None
 
         if result.multi_hand_landmarks:
-            for hand_landmarks in result.multi_hand_landmarks:
-                self.mp_drawing.draw_landmarks(
-                    frame, hand_landmarks, self.mp_hands.HAND_CONNECTIONS)
-                index_tip = hand_landmarks.landmark[self.mp_hands.HandLandmark.INDEX_FINGER_TIP]
-                x, y, z = int(index_tip.x * w), int(index_tip.y * h), index_tip.z
-                self.z_history.append(z)
+            hand_landmarks = result.multi_hand_landmarks[0]
+            self.mp_drawing.draw_landmarks(
+                frame, hand_landmarks, self.mp_hands.HAND_CONNECTIONS)
+            index_tip = hand_landmarks.landmark[self.mp_hands.HandLandmark.INDEX_FINGER_TIP]
+            wrist = hand_landmarks.landmark[self.mp_hands.HandLandmark.WRIST]
+            x, y = int(index_tip.x * w), int(index_tip.y * h)
+            # MediaPipe z is relative and normalized. Subtracting wrist z
+            # reduces the effect of moving the whole hand toward the camera.
+            self.depth_history.append(index_tip.z - wrist.z)
+            depth = sorted(self.depth_history)[len(self.depth_history) // 2]
+            if self.baseline is None:
+                self.baseline = depth
+            now = time.monotonic()
+            depth_delta = depth - self.baseline
 
-                if len(self.z_history) >= 2:
-                    dz = self.z_history[-1] - self.z_history[-2]
+            if not self.click_state:
+                if depth_delta < -self.poke_threshold:
+                    self.poke_frames += 1
+                else:
+                    self.poke_frames = 0
+                    # Slowly follow natural pose drift only while rearmed.
+                    self.baseline = 0.95 * self.baseline + 0.05 * depth
+                if (self.poke_frames >= self.min_poke_frames
+                        and now - self.last_click_time >= self.cooldown):
+                    self.click_state = True
+                    self.last_click_time = now
+                    click_coords = (x, y)
+            elif depth_delta > -self.release_threshold:
+                self.click_state = False
+                self.poke_frames = 0
+                self.baseline = depth
 
-                    if (dz < -0.02 and not self.click_state
-                            and time.time() - self.last_click_time > self.cooldown):
-                        self.click_state = True
-                        self.last_click_time = time.time()
-                        click_coords = (x, y)
-
-                    elif dz > 0.015 and self.click_state:
-                        self.click_state = False
-
-                color = (0, 255, 0) if self.click_state else (0, 0, 255)
-                cv2.circle(frame, (x, y), 8, color, cv2.FILLED)
+            color = (0, 255, 0) if self.click_state else (0, 0, 255)
+            cv2.circle(frame, (x, y), 8, color, cv2.FILLED)
+        else:
+            # Require a fresh baseline after tracking is lost; this prevents a
+            # held pose from creating a click as soon as the hand reappears.
+            self._reset_tracking()
 
         return frame, click_coords
+
+    def close(self):
+        self.hands.close()

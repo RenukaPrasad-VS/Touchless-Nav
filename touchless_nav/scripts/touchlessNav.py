@@ -2,10 +2,13 @@
 
 import rclpy
 from rclpy.node import Node
+from rclpy.action import ActionClient
 from sensor_msgs.msg import Image
 from cv_bridge import CvBridge
 import cv2
 from geometry_msgs.msg import PoseStamped
+from nav2_msgs.action import NavigateToPose
+from action_msgs.msg import GoalStatus
 from ament_index_python.packages import get_package_share_directory
 import os
 
@@ -48,8 +51,10 @@ class MapOverlayNode(Node):
 
 
         self.detector = HandClickDetector()
-        self.goal_pub = self.create_publisher(PoseStamped, '/goal_pose', 10)
-        self.get_logger().info("📍 Ready to publish Nav2 goals")
+        self.nav_client = ActionClient(self, NavigateToPose, 'navigate_to_pose')
+        self.goal_request_pending = False
+        self.active_goal_handle = None
+        self.get_logger().info("📍 Ready to send Nav2 NavigateToPose goals")
 
         self.create_subscription(Image, image_topic, self.image_callback, 10)
         self.get_logger().info(f"🖼️ Subscribed to {image_topic}")
@@ -67,14 +72,7 @@ class MapOverlayNode(Node):
             self.get_logger().info(f"🟢 Tap at pixel ({x},{y}) → world ({wx:.3f},{wy:.3f}) m")
             cv2.circle(processed_frame, (x, y), 10, (0, 255, 0), 2)
 
-            goal = PoseStamped()
-            goal.header.frame_id = 'map'
-            goal.header.stamp = self.get_clock().now().to_msg()
-            goal.pose.position.x = wx
-            goal.pose.position.y = wy
-            goal.pose.orientation.w = 1.0
-            self.goal_pub.publish(goal)
-            self.get_logger().info(f"🎯 Sent Nav2 goal: ({wx:.2f}, {wy:.2f})")
+            self._send_navigation_goal(wx, wy)
 
 
         cv2.imshow(self.window_name, processed_frame)
@@ -105,7 +103,65 @@ class MapOverlayNode(Node):
                                         self.overlay[mask], self.alpha, 0)
         return blended
 
+    def _send_navigation_goal(self, wx, wy):
+        if self.goal_request_pending:
+            self.get_logger().warning("A Nav2 goal request is already pending; tap again shortly.")
+            return
+        if not self.nav_client.server_is_ready():
+            self.get_logger().warning("Nav2 navigate_to_pose action server is not ready; no goal sent.")
+            return
+
+        goal = NavigateToPose.Goal()
+        goal.pose = PoseStamped()
+        goal.pose.header.frame_id = 'map'
+        goal.pose.header.stamp = self.get_clock().now().to_msg()
+        goal.pose.pose.position.x = float(wx)
+        goal.pose.pose.position.y = float(wy)
+        goal.pose.pose.orientation.w = 1.0
+
+        self.goal_request_pending = True
+        future = self.nav_client.send_goal_async(goal, feedback_callback=self._on_nav_feedback)
+        future.add_done_callback(self._on_goal_response)
+        self.get_logger().info(f"🎯 Requesting Nav2 goal: ({wx:.2f}, {wy:.2f})")
+
+    def _on_goal_response(self, future):
+        self.goal_request_pending = False
+        try:
+            goal_handle = future.result()
+        except Exception as exc:
+            self.get_logger().error(f"Nav2 goal request failed: {exc}")
+            return
+        if not goal_handle.accepted:
+            self.get_logger().warning("Nav2 rejected the clicked goal.")
+            return
+
+        self.active_goal_handle = goal_handle
+        self.get_logger().info("Nav2 accepted the goal.")
+        goal_handle.get_result_async().add_done_callback(
+            lambda result_future, handle=goal_handle:
+                self._on_nav_result(result_future, handle))
+
+    def _on_nav_feedback(self, _feedback):
+        # Feedback is available here for future UI progress display.
+        pass
+
+    def _on_nav_result(self, future, goal_handle):
+        try:
+            response = future.result()
+        except Exception as exc:
+            self.get_logger().error(f"Failed to get Nav2 result: {exc}")
+            return
+        if self.active_goal_handle is goal_handle:
+            self.active_goal_handle = None
+        if response.status == GoalStatus.STATUS_SUCCEEDED:
+            self.get_logger().info("Nav2 reached the clicked goal.")
+        elif response.status == GoalStatus.STATUS_CANCELED:
+            self.get_logger().info("Nav2 goal was canceled.")
+        else:
+            self.get_logger().warning(f"Nav2 goal finished with status {response.status}.")
+
     def destroy_node(self):
+        self.detector.close()
         cv2.destroyAllWindows()
         super().destroy_node()
 

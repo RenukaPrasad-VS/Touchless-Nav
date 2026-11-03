@@ -26,7 +26,7 @@ install(PROGRAMS scripts/kb_teleop.py
 )
 
 install(
-    DIRECTORY scripts launch 
+    DIRECTORY scripts
     DESTINATION share/${PROJECT_NAME}
 )
 
