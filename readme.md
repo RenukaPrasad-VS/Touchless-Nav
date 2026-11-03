@@ -1,7 +1,18 @@
-# Gesture-Guided Autonomous Navigation System (GGANS)
+# Touchless Navigation (ROS 2)
 
-A ROS 2–based mobile robotics project enabling touchless, vision-based robot navigation using hand gestures integrated with the Nav2 autonomous navigation stack.
-Users can intuitively guide a robot using hand gestures while the robot autonomously plans and executes safe paths in simulation.
+A ROS 2 project for gesture control and touchless goal selection with a TurtleBot and Nav2. This repository is maintained by [@RenukaPrasad-VS](https://github.com/RenukaPrasad-VS).
+
+## Upstream Reference
+
+This project is based on [GGANS-Touchless-Navigation by God-Official](https://github.com/God-Official/GGANS-Touchless-Navigation). That repository is credited as the upstream reference; this repository contains the changes and maintenance described below.
+
+## Changes in This Repository
+
+- Updated the simulation launch setup for Ignition Gazebo / Gazebo Fortress and configured the resource path for the packaged world meshes.
+- Stabilized gesture teleoperation with a confidence threshold, multi-frame gesture confirmation, monotonic timestamps, and a stop when detections become uncertain or stale.
+- Reworked the touchless poke detector to smooth relative finger depth and require retraction before another click.
+- Changed clicked navigation goals to use Nav2's `NavigateToPose` action, including goal acceptance and result reporting.
+- Fixed package installation issues needed to build and run the workspace.
 
 ## Tech Stack
 - ROS 2 Humble Hawksbill
@@ -45,7 +56,7 @@ pip3 install mediapipe tensorflow tensorflow-lite
 mkdir -p ~/ros2_ws/src
 cd ~/ros2_ws/src
 
-git clone https://github.com/God-Official/GGANS-Touchless-Navigation.git
+git clone https://github.com/RenukaPrasad-VS/Touchless-Nav.git
 
 cd ~/ros2_ws
 colcon build --symlink-install
@@ -85,7 +96,6 @@ ros2 launch touchless_nav touchless_nav.launch.py
 - Fully simulated and reproducible
 - Modular ROS 2 design
 
-## Author
-### Prateek H A
-**Robotics & ROS 2 Developer**  
-*Autonomous Navigation | Computer Vision | Human–Robot Interaction***
+## Maintainer
+
+[@RenukaPrasad-VS](https://github.com/RenukaPrasad-VS)
