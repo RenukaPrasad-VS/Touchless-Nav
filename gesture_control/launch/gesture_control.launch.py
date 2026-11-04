@@ -1,20 +1,15 @@
-import os
-from ament_index_python.packages import get_package_share_directory
 from launch import LaunchDescription
-from launch.actions import ExecuteProcess, IncludeLaunchDescription, RegisterEventHandler, DeclareLaunchArgument
-from launch.event_handlers import OnProcessExit
-from launch.launch_description_sources import PythonLaunchDescriptionSource
-from launch.substitutions import Command, LaunchConfiguration
+from launch.actions import DeclareLaunchArgument
+from launch.substitutions import LaunchConfiguration
 from launch_ros.actions import Node
 
 
 def generate_launch_description():
-
-    node_gc = ExecuteProcess(
-        cmd=['ros2', 'run', 'gesture_control', 'gc_node.py'],
-        output='screen'
+    defaults = {'min_gesture_confidence': '0.65', 'stable_frames': '3',
+                'min_hand_detection_confidence': '0.45', 'min_hand_presence_confidence': '0.45',
+                'min_tracking_confidence': '0.5'}
+    return LaunchDescription(
+        [DeclareLaunchArgument(k, default_value=v) for k, v in defaults.items()] +
+        [Node(package='gesture_control', executable='gc_node.py', name='gesture_teleop_node',
+              output='screen', parameters=[{k: LaunchConfiguration(k) for k in defaults}])]
     )
-
-    return LaunchDescription([
-        node_gc,
-    ])
