@@ -58,6 +58,37 @@ colcon build --packages-up-to vla_nav
 source install/setup.bash
 ```
 
+## Use a local camera
+
+For USB cameras supported by OpenCV, `camera_pub` captures from the first
+available index by default, checking indices `0` through `10`. Select a camera
+index or device path when automatic discovery picks the wrong camera:
+
+```bash
+ros2 launch camera_pub camera_pub.launch.py camera_index:=1
+ros2 launch camera_pub camera_pub.launch.py camera_device:=/dev/video2
+```
+
+RealSense, stereo, and Raspberry Pi cameras are best used with their ROS 2
+camera driver. Set `input_topic` to the driver's `sensor_msgs/msg/Image` topic;
+the node relays its frames to `/image_raw` for the touchless navigation node.
+For example, use the color stream from a RealSense camera or the left image
+from a stereo camera:
+
+```bash
+ros2 launch camera_pub camera_pub.launch.py input_topic:=/camera/color/image_raw
+ros2 launch camera_pub camera_pub.launch.py input_topic:=/stereo/left/image_rect
+```
+
+Find the actual topic for your driver with `ros2 topic list`. Raspberry Pi
+camera drivers expose their own image topic as well; pass that topic in the
+same way. In relay mode the camera driver controls resolution and frame rate,
+and frames are passed through without mirroring by default. Set
+`mirror_input:=true` to flip relayed frames. In local OpenCV mode, the launch
+also accepts `image_topic`, `width`, `height`, `fps`, and `mirror`; set width
+or height to `0` to keep the camera's default resolution. Install and start
+the appropriate camera driver before launching in relay mode.
+
 ## Run in Gazebo
 
 Stop any currently running Gazebo session first; a running world cannot be
