@@ -29,6 +29,48 @@ grounds language in an image, while calibrated depth and TF provide a metric
 target pose. It does not require a robot-specific training dataset. It is not a
 direct motor-action policy; Nav2 executes the goal.
 
+## Code structure
+
+The repository is a ROS 2 workspace made up of packages for the robot, touchless
+and gesture control, camera input, Nav2, and VLA object navigation:
+
+```text
+GGANS-Touchless-Navigation/
+├── camera_pub/                 # USB camera capture and image topic relay
+│   ├── launch/
+│   └── scripts/
+├── gesture_control/            # Gesture recognition node and launch file
+│   ├── launch/
+│   ├── model/                  # Gesture recognizer task asset
+│   └── scripts/
+├── touchless_nav/              # Hand tracking, click detection, and navigation
+│   ├── launch/
+│   ├── model/                  # Hand landmarker task asset
+│   └── scripts/
+├── turtlebot_description/      # TurtleBot URDF/Xacro, Gazebo worlds, meshes
+│   ├── config/
+│   ├── launch/
+│   ├── urdf/
+│   └── worlds/
+├── turtlebot_nav2/             # Nav2 launch, parameters, RViz, and map
+│   ├── config/
+│   ├── launch/
+│   ├── maps/
+│   └── params/
+├── turtlebot_teleop/           # Keyboard teleoperation node
+│   └── scripts/
+└── vla_nav/                    # Language-guided object navigation
+    ├── config/                 # VLA node parameters
+    ├── launch/                 # VLA node and Gazebo demo launches
+    ├── models/                 # Demo object models
+    ├── vla_nav/                # ROS 2 Python node
+    └── worlds/                 # Demo world objects
+```
+
+Each ROS package has its own `package.xml` and `CMakeLists.txt` (and `setup.py`
+for `vla_nav`). The root README documents the VLA setup and demo; package-level
+launch files and configuration hold the runtime details for each component.
+
 ## Install the local vision model
 
 Install [Ollama](https://ollama.com/download), then pull a local vision model:
